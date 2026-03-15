@@ -1,0 +1,20 @@
+# ── Frontend ──────────────────────────────────────────────────────────────
+jewelry-mvp-bracelet/frontend/node_modules/
+jewelry-mvp-bracelet/frontend/.next/
+jewelry-mvp-bracelet/frontend/.env.local
+jewelry-mvp-bracelet/frontend/out/
+
+# ── Backend ───────────────────────────────────────────────────────────────
+jewelry-mvp-bracelet/backend/__pycache__/
+jewelry-mvp-bracelet/backend/**/__pycache__/
+jewelry-mvp-bracelet/backend/**/*.pyc
+jewelry-mvp-bracelet/backend/.env
+jewelry-mvp-bracelet/backend/storage/uploads/
+jewelry-mvp-bracelet/backend/storage/designs/
+jewelry-mvp-bracelet/backend/storage/models/
+jewelry-mvp-bracelet/backend/venv/
+jewelry-mvp-bracelet/backend/.venv/
+
+# ── General ───────────────────────────────────────────────────────────────
+.DS_Store
+*.log
