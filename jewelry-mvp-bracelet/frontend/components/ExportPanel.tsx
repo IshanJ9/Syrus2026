@@ -45,8 +45,20 @@ export default function ExportPanel() {
           <span className="text-amber-400">{confidence}%</span>
         </div>
         <div className="flex justify-between">
+          <span>Type</span>
+          <span className="capitalize">{design.jewelry_type ?? "bracelet"}</span>
+        </div>
+        <div className="flex justify-between">
           <span>Style</span>
-          <span className="capitalize">{design.bracelet_style}</span>
+          <span className="capitalize">
+            {design.jewelry_type === "ring"
+              ? (design.ring_style ?? "band")
+              : design.jewelry_type === "pendant"
+              ? (design.pendant_style ?? "drop")
+              : design.jewelry_type === "earring"
+              ? (design.earring_style ?? "stud")
+              : design.bracelet_style}
+          </span>
         </div>
         <div className="flex justify-between">
           <span>Mesh</span>

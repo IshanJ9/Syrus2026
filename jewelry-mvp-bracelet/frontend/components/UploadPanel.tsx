@@ -9,6 +9,7 @@ export default function UploadPanel() {
   const [error, setError] = useState<string | null>(null);
   const setDesign = useJewelryStore((s) => s.setDesign);
   const setStatus = useJewelryStore((s) => s.setStatus);
+  const setUpload = useJewelryStore((s) => s.setUpload);
   const status = useJewelryStore((s) => s.status);
   const isLoading = status === "uploading" || status === "analyzing";
 
@@ -18,7 +19,9 @@ export default function UploadPanel() {
       return;
     }
     setError(null);
-    setPreview(URL.createObjectURL(file));
+    const blobUrl = URL.createObjectURL(file);
+    setPreview(blobUrl);
+    setUpload(blobUrl, file.name);
     setStatus("analyzing");
     try {
       const resp = await analyzeJewelry(file);

@@ -5,14 +5,19 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 DEFAULT_ANALYSIS = {
+    "jewelry_type": "bracelet",
     "metal": "yellow_gold",
     "stone": "none",
     "finish": "polished",
     "motif": "none",
     "center_stone": False,
     "accent_count": 4,
+    "stone_size": 0.5,
     "band_width": 0.15,
     "bracelet_style": "bangle",
+    "ring_style": None,
+    "pendant_style": None,
+    "earring_style": None,
     "confidence": 0.5,
 }
 
@@ -37,37 +42,82 @@ async def _analyze_with_gemini(image_path: str) -> dict | None:
         with open(image_path, "rb") as f:
             img_data = f.read()
 
-        prompt = """You are an expert jeweler. Analyze this bracelet image carefully.
+        prompt = """You are an expert jeweler. Analyze this jewelry image carefully.
 
-CLASSIFICATION RULES:
-- "tennis" bracelet: a THIN band with MANY small stones set in a continuous row all around. This is the most common fine jewelry bracelet style. If you see a line of small sparkling stones — it is tennis.
-- "bangle": a rigid ring with NO visible chain links. Smooth or decorated but solid.
-- "cuff": an open-ended rigid bracelet (has a gap/opening).
-- "chain": visible interlocking metal links.
-- "beaded": round beads strung together.
+STEP 1 — Identify the jewelry TYPE:
+- "bracelet": worn around the wrist, larger circular shape
+- "ring": worn on a finger, small circular band
+- "pendant": a decorative piece that hangs from a chain or necklace
+- "earring": worn on the ear (studs, hoops, danglers, etc.)
+
+STEP 2 — Identify the SUB-STYLE based on type:
+
+If BRACELET:
+- "tennis": thin band with many small stones in a continuous row
+- "bangle": rigid ring, smooth or decorated but solid
+- "cuff": open-ended rigid bracelet (has a gap)
+- "chain": visible interlocking metal links
+- "beaded": round beads strung together
+
+If RING:
+- "solitaire": single prominent center stone on a plain band
+- "halo": center stone surrounded by a ring of smaller stones
+- "three_stone": three stones in a row (center larger)
+- "band": plain or decorated band with no prominent stone
+- "pave": band covered with many tiny stones
+
+If PENDANT:
+- "drop": teardrop or elongated hanging shape
+- "heart": heart-shaped body
+- "cross": cross-shaped body
+- "charm": small decorative shape (disc, star, etc.)
+- "locket": oval/round hinged case
+
+If EARRING:
+- "stud": small, sits directly on the earlobe, usually a single stone or shape
+- "hoop": circular or semi-circular ring shape
+- "drop": hangs below the earlobe with a dangling element
+- "chandelier": elaborate multi-tiered dangling design
+- "huggie": small thick hoop that hugs the earlobe closely
+
+STEP 3 — Analyze materials:
 
 STONE RULES:
-- If you see many small sparkling/clear stones in a row → "diamond", accent_count = 15-25, center_stone = false
-- If stones are colored red → "ruby", blue → "sapphire", green → "emerald"
-- If no stones visible → "none", accent_count = 0
+- Clear/white sparkling stones -> "diamond"
+- Red stones -> "ruby"
+- Blue stones -> "sapphire"
+- Green stones -> "emerald"
+- Purple stones -> "amethyst"
+- Yellow/orange stones -> "topaz"
+- Iridescent/milky stones -> "opal"
+- Round lustrous white/cream -> "pearl"
+- No stones -> "none"
 
 METAL RULES:
-- Warm yellow tone → "yellow_gold"
-- Cool silvery/white tone → "white_gold" or "platinum" or "silver"
-- Pinkish warm tone → "rose_gold"
+- Warm yellow tone -> "yellow_gold"
+- Cool silvery/white tone -> "white_gold" or "platinum" or "silver"
+- Pinkish warm tone -> "rose_gold"
 
 Return ONLY this JSON, nothing else:
 {
+  "jewelry_type": "bracelet"|"ring"|"pendant"|"earring",
   "metal": "yellow_gold"|"white_gold"|"rose_gold"|"silver"|"platinum",
-  "stone": "diamond"|"ruby"|"emerald"|"sapphire"|"none",
+  "stone": "diamond"|"ruby"|"emerald"|"sapphire"|"amethyst"|"topaz"|"opal"|"pearl"|"none",
   "finish": "polished"|"matte"|"brushed"|"hammered",
   "motif": "none"|"floral"|"geometric"|"vine",
   "center_stone": true or false,
   "accent_count": 0-30,
+  "stone_size": 0.3-1.5,
   "band_width": 0.05-0.5,
   "bracelet_style": "tennis"|"bangle"|"cuff"|"chain"|"beaded",
+  "ring_style": "solitaire"|"halo"|"three_stone"|"band"|"pave",
+  "pendant_style": "drop"|"heart"|"cross"|"charm"|"locket",
+  "earring_style": "stud"|"hoop"|"drop"|"chandelier"|"huggie",
   "confidence": 0.0-1.0
-}"""
+}
+
+IMPORTANT: Only fill in the style field that matches the jewelry_type.
+Set the other style fields to null."""
 
         import mimetypes
         mime = mimetypes.guess_type(image_path)[0] or "image/jpeg"
@@ -88,9 +138,20 @@ Return ONLY this JSON, nothing else:
 
         data = json.loads(text.strip())
         # Validate required keys
-        for k in ["metal", "stone", "finish", "bracelet_style"]:
+        for k in ["jewelry_type", "metal", "stone", "finish"]:
             if k not in data:
                 data[k] = DEFAULT_ANALYSIS[k]
+        # Set style defaults based on detected type
+        jtype = data.get("jewelry_type", "bracelet")
+        if jtype == "bracelet":
+            data.setdefault("bracelet_style", "bangle")
+        elif jtype == "ring":
+            data.setdefault("ring_style", "solitaire")
+        elif jtype == "pendant":
+            data.setdefault("pendant_style", "drop")
+        elif jtype == "earring":
+            data.setdefault("earring_style", "stud")
+        data.setdefault("stone_size", 0.5)
         data.setdefault("confidence", 0.8)
         logger.info("Gemini analysis: %s", data)
         return data

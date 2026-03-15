@@ -26,14 +26,34 @@ app.add_middleware(
 # Storage paths
 STORAGE_DIR = Path(os.getenv("STORAGE_PATH", "./storage"))
 MODELS_DIR = STORAGE_DIR / "models"
+UPLOADS_DIR = STORAGE_DIR / "uploads"
 
 # Ensure storage directories exist at startup
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Include routers
 app.include_router(generate_router, prefix="/api")
 app.include_router(customize_router, prefix="/api")
 app.include_router(export_router, prefix="/api")
+
+
+@app.get("/api/image/{design_id}")
+async def serve_image(design_id: str):
+    """Serve the uploaded source image for a given design_id."""
+    for ext in [".jpg", ".jpeg", ".png", ".webp"]:
+        # Try both the design_id directly and temp_ prefixed
+        for prefix in [design_id, f"temp_{design_id}"]:
+            path = UPLOADS_DIR / f"{prefix}{ext}"
+            if path.exists():
+                mime = {
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                    ".png": "image/png",
+                    ".webp": "image/webp",
+                }[ext]
+                return FileResponse(str(path), media_type=mime)
+    return JSONResponse(status_code=404, content={"detail": "Image not found"})
 
 
 @app.get("/api/mesh/{design_id}")

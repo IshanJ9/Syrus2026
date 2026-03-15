@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 STORAGE_DIR = Path(os.getenv("STORAGE_PATH", "./storage"))
 MODELS_DIR = STORAGE_DIR / "models"
+HF_TOKEN = os.getenv("HF_TOKEN", "")
 
 
 def _ensure_dirs():
@@ -91,16 +92,33 @@ async def _generate_hunyuan(image_path: str, design_id: str) -> str | None:
         from gradio_client import Client, handle_file
         logger.info("[Hunyuan] Connecting to frogleo/Image-to-3D ...")
         client = Client("frogleo/Image-to-3D")
+        # Fast parameters — prioritize speed over detail:
+        #   steps=10, guidance_scale=6.0, octree_resolution=256
+        #   num_chunks=8000, target_face_num=20000
         result = client.predict(
             handle_file(image_path),
-            5, 5.5, 1234, 256, 8000, 10000, True,
+            10,       # steps
+            6.0,      # guidance_scale
+            42,       # seed
+            256,      # octree_resolution
+            8000,     # num_chunks
+            20000,    # target_face_num
+            False,    # randomize_seed
             api_name="/gen_shape",
         )
+        # Result is a tuple: (html, download_filedata, glb_path_str, obj_path_str)
         logger.info(
             "[Hunyuan] Result types: %s",
             [type(r).__name__ for r in result] if isinstance(result, (list, tuple)) else type(result).__name__,
         )
-        glb = _find_file(result)
+        # Try the direct GLB path first (index 2), then download filedata (index 1)
+        glb = None
+        if isinstance(result, (list, tuple)) and len(result) >= 3:
+            glb = _find_file(result[2])  # glb_path string
+            if not glb and len(result) >= 2:
+                glb = _find_file(result[1])  # download filedata
+        if not glb:
+            glb = _find_file(result)  # fallback: search entire result
         if glb:
             return _save_glb(glb, design_id)
         logger.warning("[Hunyuan] No valid mesh in result")
@@ -111,18 +129,35 @@ async def _generate_hunyuan(image_path: str, design_id: str) -> str | None:
 
 
 async def _generate_trellis(image_path: str, design_id: str) -> str | None:
+    """Primary: trellis-community/TRELLIS — single GPU call via combined endpoint."""
     try:
         from gradio_client import Client, handle_file
-        logger.info("[TRELLIS] Connecting ...")
+        logger.info("[TRELLIS] Connecting to trellis-community/TRELLIS ...")
         client = Client("trellis-community/TRELLIS")
+
+        # Combined generate + extract GLB in one GPU call (most quota-efficient)
+        logger.info("[TRELLIS] Calling /generate_and_extract_glb ...")
         result = client.predict(
-            handle_file(image_path), [], False, 0,
-            7.5, 12, 3.0, 12, "stochastic", 0.95, 1024,
+            handle_file(image_path),   # image
+            [],                         # multiimages (empty for single image)
+            False,                      # is_multiimage
+            0,                          # seed
+            7.5,                        # ss_guidance_strength
+            12,                         # ss_sampling_steps
+            3.0,                        # slat_guidance_strength
+            12,                         # slat_sampling_steps
+            "stochastic",               # multiimage_algo
+            0.95,                       # mesh_simplify
+            1024,                       # texture_size
             api_name="/generate_and_extract_glb",
         )
+        logger.info("[TRELLIS] Result types: %s",
+            [type(r).__name__ for r in result] if isinstance(result, (list, tuple)) else type(result).__name__)
+
         glb = _find_file(result)
         if glb:
             return _save_glb(glb, design_id)
+        logger.warning("[TRELLIS] No valid mesh in result")
         return None
     except Exception as e:
         logger.error("[TRELLIS] Failed: %s", e)
@@ -131,11 +166,12 @@ async def _generate_trellis(image_path: str, design_id: str) -> str | None:
 
 async def generate_3d_mesh(image_path: str, design_id: str) -> str | None:
     logger.info("Starting 3D mesh generation for %s", design_id)
-    glb = await _generate_hunyuan(image_path, design_id)
+    # Try TRELLIS first (single GPU call, most reliable)
+    glb = await _generate_trellis(image_path, design_id)
     if glb:
         return glb
-    logger.info("Primary failed, trying TRELLIS ...")
-    glb = await _generate_trellis(image_path, design_id)
+    logger.info("TRELLIS failed, trying frogleo/Hunyuan ...")
+    glb = await _generate_hunyuan(image_path, design_id)
     if glb:
         return glb
     logger.warning("All 3D generation failed for %s", design_id)

@@ -34,6 +34,10 @@ export function getMeshUrl(designId: string): string {
   return `${API}/api/mesh/${designId}`;
 }
 
+export function getImageUrl(designId: string): string {
+  return `${API}/api/image/${designId}`;
+}
+
 export function getExportUrl(designId: string, format = "glb"): string {
   return `${API}/api/export/${designId}?format=${format}`;
 }

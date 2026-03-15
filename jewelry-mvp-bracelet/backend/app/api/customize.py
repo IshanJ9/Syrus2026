@@ -14,6 +14,8 @@ async def customize_design(req: CustomizeRequest):
         raise HTTPException(status_code=404, detail="Design not found")
 
     updates = {}
+    if req.jewelry_type is not None:
+        updates["jewelry_type"] = req.jewelry_type
     if req.metal is not None:
         updates["metal"] = req.metal
     if req.stone is not None:
@@ -26,10 +28,18 @@ async def customize_design(req: CustomizeRequest):
         updates["center_stone"] = req.center_stone
     if req.accent_count is not None:
         updates["accent_count"] = req.accent_count
+    if req.stone_size is not None:
+        updates["stone_size"] = req.stone_size
     if req.band_width is not None:
         updates["band_width"] = req.band_width
     if req.bracelet_style is not None:
         updates["bracelet_style"] = req.bracelet_style
+    if req.ring_style is not None:
+        updates["ring_style"] = req.ring_style
+    if req.pendant_style is not None:
+        updates["pendant_style"] = req.pendant_style
+    if req.earring_style is not None:
+        updates["earring_style"] = req.earring_style
 
     design = design.model_copy(update=updates)
     save_design(design)

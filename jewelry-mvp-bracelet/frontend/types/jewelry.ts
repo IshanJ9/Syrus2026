@@ -1,6 +1,6 @@
 /* -- Core TypeScript types for the Jewelry Design system -- */
 
-export type JewelryType = "bracelet";
+export type JewelryType = "bracelet" | "ring" | "pendant" | "earring";
 
 export type MetalType =
   | "yellow_gold"
@@ -16,6 +16,10 @@ export type StoneType =
   | "ruby"
   | "emerald"
   | "sapphire"
+  | "amethyst"
+  | "topaz"
+  | "opal"
+  | "pearl"
   | "none";
 
 export type MotifType = "none" | "floral" | "geometric" | "vine";
@@ -26,6 +30,27 @@ export type BraceletStyle =
   | "cuff"
   | "chain"
   | "beaded";
+
+export type RingStyle =
+  | "solitaire"
+  | "halo"
+  | "three_stone"
+  | "band"
+  | "pave";
+
+export type PendantStyle =
+  | "drop"
+  | "heart"
+  | "cross"
+  | "charm"
+  | "locket";
+
+export type EarringStyle =
+  | "stud"
+  | "hoop"
+  | "drop"
+  | "chandelier"
+  | "huggie";
 
 /* -- Price -- */
 
@@ -50,14 +75,19 @@ export interface OptimizationSuggestion {
 
 export interface JewelryDesign {
   design_id: string;
+  jewelry_type: JewelryType;
   metal: MetalType;
   stone: StoneType;
   finish: FinishType;
   motif: MotifType;
   center_stone: boolean;
   accent_count: number;
+  stone_size: number;
   band_width: number;
   bracelet_style: BraceletStyle;
+  ring_style: RingStyle | null;
+  pendant_style: PendantStyle | null;
+  earring_style: EarringStyle | null;
   model_glb_path: string | null;
   confidence: number;
   source_image_path: string | null;
@@ -67,14 +97,19 @@ export interface JewelryDesign {
 
 export interface CustomizeRequest {
   design_id: string;
+  jewelry_type?: JewelryType;
   metal?: MetalType;
   stone?: StoneType;
   finish?: FinishType;
   motif?: MotifType;
   center_stone?: boolean;
   accent_count?: number;
+  stone_size?: number;
   band_width?: number;
   bracelet_style?: BraceletStyle;
+  ring_style?: RingStyle;
+  pendant_style?: PendantStyle;
+  earring_style?: EarringStyle;
 }
 
 export interface AnalyzeResponse {

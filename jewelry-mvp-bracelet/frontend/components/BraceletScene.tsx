@@ -6,6 +6,7 @@ import BandMesh from "./BandMesh";
 import StoneMesh from "./StoneMesh";
 import MotifMesh from "./MotifMesh";
 import ClaspMesh from "./ClaspMesh";
+import TexturedBracelet from "./TexturedBracelet";
 import GeneratedMeshViewer from "./GeneratedMeshViewer";
 
 function ProceduralBracelet() {
@@ -27,7 +28,6 @@ function ProceduralBracelet() {
   );
 }
 
-/** Procedural stones — used both standalone and as overlay on AI mesh */
 function StoneOverlay() {
   const design = useJewelryStore((s) => s.design);
   if (!design || design.stone === "none") return null;
@@ -43,9 +43,43 @@ function StoneOverlay() {
   );
 }
 
-export default function BraceletScene() {
+function AIMeshView({ designId }: { designId: string }) {
+  return (
+    <Suspense fallback={<ProceduralBracelet />}>
+      <GeneratedMeshViewer designId={designId} />
+      <StoneOverlay />
+    </Suspense>
+  );
+}
+
+interface SceneProps {
+  showAIMesh?: boolean;
+  /** Browser blob URL of the uploaded image for instant texture mapping */
+  uploadedImageUrl?: string;
+}
+
+export default function BraceletScene({ showAIMesh = false, uploadedImageUrl }: SceneProps) {
   const design = useJewelryStore((s) => s.design);
   const hasAIMesh = Boolean(design?.model_glb_path);
+
+  // Determine which view to render:
+  // 1. AI mesh (if toggled on and available)
+  // 2. Image-textured bracelet (primary — uses uploaded photo as texture)
+  // 3. Procedural bracelet (fallback if no image available)
+  let braceletView: React.ReactNode;
+
+  if (showAIMesh && hasAIMesh && design) {
+    braceletView = <AIMeshView designId={design.design_id} />;
+  } else if (design && uploadedImageUrl) {
+    braceletView = (
+      <Suspense fallback={<ProceduralBracelet />}>
+        <TexturedBracelet imageUrl={uploadedImageUrl} />
+        <StoneOverlay />
+      </Suspense>
+    );
+  } else {
+    braceletView = <ProceduralBracelet />;
+  }
 
   return (
     <>
@@ -56,15 +90,7 @@ export default function BraceletScene() {
       <spotLight position={[0, 5, 0]} intensity={0.8} angle={0.5} penumbra={0.5} color="#fffaf0" />
       <Environment preset="studio" />
 
-      {hasAIMesh && design ? (
-        <Suspense fallback={<ProceduralBracelet />}>
-          {/* Hybrid: AI mesh for base shape + procedural stones on top */}
-          <GeneratedMeshViewer designId={design.design_id} />
-          <StoneOverlay />
-        </Suspense>
-      ) : (
-        <ProceduralBracelet />
-      )}
+      {braceletView}
 
       <OrbitControls
         enablePan={false}

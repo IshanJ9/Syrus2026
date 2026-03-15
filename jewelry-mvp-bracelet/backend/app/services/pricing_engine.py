@@ -1,7 +1,6 @@
 """Rule-based pricing engine for jewelry."""
 from app.schemas.jewelry import JewelryDesign, PriceBreakdown, MetalType, StoneType
 
-# Price per gram USD
 METAL_PRICE_PER_GRAM = {
     MetalType.YELLOW_GOLD: 60.0,
     MetalType.WHITE_GOLD: 62.0,
@@ -15,25 +14,46 @@ STONE_PRICE_PER_CT = {
     StoneType.RUBY: 300.0,
     StoneType.EMERALD: 250.0,
     StoneType.SAPPHIRE: 200.0,
+    StoneType.AMETHYST: 50.0,
+    StoneType.TOPAZ: 30.0,
+    StoneType.OPAL: 150.0,
+    StoneType.PEARL: 80.0,
     StoneType.NONE: 0.0,
 }
 
 BRACELET_GRAMS = {
-    "tennis": 8.0,
-    "bangle": 12.0,
-    "cuff": 18.0,
-    "chain": 6.0,
-    "beaded": 5.0,
+    "tennis": 8.0, "bangle": 12.0, "cuff": 18.0, "chain": 6.0, "beaded": 5.0,
+}
+
+RING_GRAMS = {
+    "solitaire": 3.0, "halo": 3.5, "three_stone": 4.0, "band": 4.5, "pave": 3.0,
+}
+
+PENDANT_GRAMS = {
+    "drop": 4.0, "heart": 5.0, "cross": 6.0, "charm": 3.0, "locket": 8.0,
+}
+
+EARRING_GRAMS = {
+    "stud": 1.5, "hoop": 2.5, "drop": 3.0, "chandelier": 4.0, "huggie": 2.0,
 }
 
 
 def calculate_price(design: JewelryDesign) -> PriceBreakdown:
-    style = design.bracelet_style.value
-    grams = BRACELET_GRAMS.get(style, 10.0) * (1 + design.band_width * 2)
+    jtype = design.jewelry_type.value
 
+    if jtype == "ring" and design.ring_style:
+        grams = RING_GRAMS.get(design.ring_style.value, 3.5)
+    elif jtype == "pendant" and design.pendant_style:
+        grams = PENDANT_GRAMS.get(design.pendant_style.value, 4.0)
+    elif jtype == "earring" and design.earring_style:
+        grams = EARRING_GRAMS.get(design.earring_style.value, 2.0) * 2  # pair
+    else:
+        grams = BRACELET_GRAMS.get(design.bracelet_style.value, 10.0)
+
+    grams *= (1 + design.band_width * 2)
     material_cost = grams * METAL_PRICE_PER_GRAM.get(design.metal, 60.0)
 
-    stone_ct = 0.05 if design.stone != StoneType.NONE else 0.0
+    stone_ct = (0.05 * design.stone_size) if design.stone != StoneType.NONE else 0.0
     stone_count = design.accent_count + (1 if design.center_stone else 0)
     stone_cost = stone_count * stone_ct * STONE_PRICE_PER_CT.get(design.stone, 0.0)
 
@@ -58,7 +78,6 @@ def optimize_budget(design: JewelryDesign, target_budget: float) -> dict:
     if current <= target_budget:
         return {"feasible": True, "suggestions": [], "estimated_price": current}
 
-    # Try cheaper metal
     cheaper_metals = [MetalType.SILVER, MetalType.YELLOW_GOLD, MetalType.ROSE_GOLD]
     for m in cheaper_metals:
         test = design.model_copy(update={"metal": m})
@@ -67,7 +86,6 @@ def optimize_budget(design: JewelryDesign, target_budget: float) -> dict:
             suggestions.append(f"Switch to {m.value} (saves ${current - p:.0f})")
             break
 
-    # Try reducing stones
     if design.accent_count > 4:
         test = design.model_copy(update={"accent_count": 4})
         p = calculate_price(test).total
