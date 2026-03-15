@@ -30,9 +30,9 @@ async def _analyze_with_gemini(image_path: str) -> dict | None:
     if not api_key:
         return None
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
 
         with open(image_path, "rb") as f:
             img_data = f.read()
@@ -71,10 +71,14 @@ Return ONLY this JSON, nothing else:
 
         import mimetypes
         mime = mimetypes.guess_type(image_path)[0] or "image/jpeg"
-        response = model.generate_content([
-            {"mime_type": mime, "data": img_data},
-            prompt,
-        ])
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                genai.types.Part.from_bytes(data=img_data, mime_type=mime),
+                prompt,
+            ],
+        )
 
         text = response.text.strip()
         if text.startswith("```"):
