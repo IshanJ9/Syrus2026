@@ -16,13 +16,33 @@ function stoneColor(stone: string) {
 
 function stoneMat(stone: string) {
   const color = stoneColor(stone);
-  const isGem = stone !== "none";
+  if (stone === "diamond") {
+    return {
+      color,
+      metalness: 0.0,
+      roughness: 0.0,
+      transparent: true,
+      opacity: 0.8,
+      envMapIntensity: 3.0,
+    };
+  }
+  if (stone !== "none") {
+    return {
+      color,
+      metalness: 0.05,
+      roughness: 0.02,
+      transparent: false,
+      opacity: 1.0,
+      envMapIntensity: 2.0,
+    };
+  }
   return {
     color,
-    metalness: isGem ? 0.1 : 0.3,
-    roughness: isGem ? 0.05 : 0.3,
-    transparent: stone === "diamond",
-    opacity: stone === "diamond" ? 0.85 : 1.0,
+    metalness: 0.3,
+    roughness: 0.3,
+    transparent: false,
+    opacity: 1.0,
+    envMapIntensity: 1.0,
   };
 }
 
@@ -50,7 +70,7 @@ export default function StoneMesh({ stone, accentCount, centerStone, style, band
       <group>
         {positions.map((pos, i) => (
           <mesh key={i} position={pos}>
-            <octahedronGeometry args={[stoneR * 0.7, 0]} />
+            <octahedronGeometry args={[stoneR * 0.7, 2]} />
             <meshStandardMaterial {...mat} />
           </mesh>
         ))}
@@ -63,7 +83,7 @@ export default function StoneMesh({ stone, accentCount, centerStone, style, band
     <group>
       {centerStone && (
         <mesh position={[radius, 0, stoneR + bandWidth * 0.5]}>
-          <octahedronGeometry args={[stoneR * 1.2, 0]} />
+          <octahedronGeometry args={[stoneR * 1.2, 2]} />
           <meshStandardMaterial {...mat} />
         </mesh>
       )}

@@ -37,19 +37,37 @@ async def _analyze_with_gemini(image_path: str) -> dict | None:
         with open(image_path, "rb") as f:
             img_data = f.read()
 
-        prompt = """Analyze this jewelry image and return ONLY valid JSON with these fields:
+        prompt = """You are an expert jeweler. Analyze this bracelet image carefully.
+
+CLASSIFICATION RULES:
+- "tennis" bracelet: a THIN band with MANY small stones set in a continuous row all around. This is the most common fine jewelry bracelet style. If you see a line of small sparkling stones — it is tennis.
+- "bangle": a rigid ring with NO visible chain links. Smooth or decorated but solid.
+- "cuff": an open-ended rigid bracelet (has a gap/opening).
+- "chain": visible interlocking metal links.
+- "beaded": round beads strung together.
+
+STONE RULES:
+- If you see many small sparkling/clear stones in a row → "diamond", accent_count = 15-25, center_stone = false
+- If stones are colored red → "ruby", blue → "sapphire", green → "emerald"
+- If no stones visible → "none", accent_count = 0
+
+METAL RULES:
+- Warm yellow tone → "yellow_gold"
+- Cool silvery/white tone → "white_gold" or "platinum" or "silver"
+- Pinkish warm tone → "rose_gold"
+
+Return ONLY this JSON, nothing else:
 {
-  "metal": one of "yellow_gold"|"white_gold"|"rose_gold"|"silver"|"platinum",
-  "stone": one of "diamond"|"ruby"|"emerald"|"sapphire"|"none",
-  "finish": one of "polished"|"matte"|"brushed"|"hammered",
-  "motif": one of "none"|"floral"|"geometric"|"vine",
+  "metal": "yellow_gold"|"white_gold"|"rose_gold"|"silver"|"platinum",
+  "stone": "diamond"|"ruby"|"emerald"|"sapphire"|"none",
+  "finish": "polished"|"matte"|"brushed"|"hammered",
+  "motif": "none"|"floral"|"geometric"|"vine",
   "center_stone": true or false,
-  "accent_count": integer 0-30,
-  "band_width": float 0.05-0.5 (thin=0.08, medium=0.15, wide=0.3),
-  "bracelet_style": one of "tennis"|"bangle"|"cuff"|"chain"|"beaded",
-  "confidence": float 0.0-1.0
-}
-Return ONLY the JSON object, no explanation."""
+  "accent_count": 0-30,
+  "band_width": 0.05-0.5,
+  "bracelet_style": "tennis"|"bangle"|"cuff"|"chain"|"beaded",
+  "confidence": 0.0-1.0
+}"""
 
         import mimetypes
         mime = mimetypes.guess_type(image_path)[0] or "image/jpeg"

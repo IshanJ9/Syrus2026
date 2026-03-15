@@ -40,6 +40,7 @@ export default function GeneratedMeshViewer({ designId }: { designId: string }) 
     return () => { cancelled = true; };
   }, [url]);
 
+  // Apply rich jewelry materials based on the design's metal and finish
   useEffect(() => {
     if (!design || !scene) return;
     const preset = METAL_PRESETS[design.metal as keyof typeof METAL_PRESETS] ?? METAL_PRESETS.yellow_gold;
@@ -48,18 +49,23 @@ export default function GeneratedMeshViewer({ designId }: { designId: string }) 
 
     scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        if (!(child.material instanceof THREE.MeshStandardMaterial)) {
-          child.material = new THREE.MeshStandardMaterial();
-        }
-        const mat = child.material as THREE.MeshStandardMaterial;
-        mat.color = color;
-        mat.metalness = preset.metalness;
-        mat.roughness = Math.min(1, preset.roughness + finishExtra);
-        mat.needsUpdate = true;
+        const mat = new THREE.MeshPhysicalMaterial({
+          color,
+          metalness: preset.metalness,
+          roughness: Math.min(1, preset.roughness + finishExtra),
+          reflectivity: 1.0,
+          clearcoat: 0.3,
+          clearcoatRoughness: 0.1,
+          envMapIntensity: 2.0,
+        });
+        child.material = mat;
+        child.castShadow = true;
+        child.receiveShadow = true;
       }
     });
   }, [scene, design?.metal, design?.finish]);
 
+  // Auto-center and auto-scale
   useEffect(() => {
     if (!scene) return;
     const box = new THREE.Box3().setFromObject(scene);
