@@ -5,8 +5,9 @@ import BraceletScene from "./BraceletScene";
 
 export default function ViewerPanel() {
   const design = useJewelryStore((s) => s.design);
-  const isLoading = useJewelryStore((s) => s.isLoading);
+  const isLoading = useJewelryStore((s) => s.status === "analyzing" || s.status === "uploading");
   const hasAIMesh = Boolean(design?.model_glb_path);
+  const isMeshPending = Boolean(design && !design.model_glb_path);
 
   return (
     <div className="relative w-full h-full bg-gray-950">
@@ -29,8 +30,8 @@ export default function ViewerPanel() {
 
       {/* HUD overlays */}
       <div className="absolute top-3 left-3 flex gap-2">
-        <span className={`text-xs px-2 py-1 rounded-full font-medium ${hasAIMesh ? "bg-green-900/80 text-green-300" : "bg-yellow-900/80 text-yellow-300"}`}>
-          {hasAIMesh ? "AI Mesh" : "Procedural"}
+        <span className={`text-xs px-2 py-1 rounded-full font-medium ${hasAIMesh ? "bg-green-900/80 text-green-300" : isMeshPending ? "bg-blue-900/80 text-blue-300 animate-pulse" : "bg-yellow-900/80 text-yellow-300"}`}>
+          {hasAIMesh ? "AI Mesh" : isMeshPending ? "Generating AI Mesh..." : "Procedural"}
         </span>
         {design && (
           <span className="text-xs px-2 py-1 rounded-full bg-gray-800/80 text-gray-300 capitalize">

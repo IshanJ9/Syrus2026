@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useJewelryStore } from "@/store/useJewelryStore";
+import { getDesign } from "@/lib/api";
 import UploadPanel from "@/components/UploadPanel";
 import CustomizationPanel from "@/components/CustomizationPanel";
 import ExportPanel from "@/components/ExportPanel";
@@ -11,6 +13,33 @@ const ViewerPanel = dynamic(() => import("@/components/ViewerPanel"), { ssr: fal
 
 export default function HomePage() {
   const design = useJewelryStore((s) => s.design);
+  const setDesign = useJewelryStore((s) => s.setDesign);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll backend for mesh readiness when design has no glb yet
+  useEffect(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (!design || design.model_glb_path) return;
+
+    timerRef.current = setInterval(async () => {
+      try {
+        const updated = await getDesign(design.design_id);
+        if (updated.model_glb_path) {
+          setDesign(updated);
+          if (timerRef.current) clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      } catch {}
+    }, 5000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [design?.design_id, design?.model_glb_path, setDesign]);
 
   return (
     <main className="h-screen w-screen flex flex-col bg-gray-950 text-gray-100 overflow-hidden">

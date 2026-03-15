@@ -8,8 +8,9 @@ export default function UploadPanel() {
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const setDesign = useJewelryStore((s) => s.setDesign);
-  const setLoading = useJewelryStore((s) => s.setLoading);
-  const isLoading = useJewelryStore((s) => s.isLoading);
+  const setStatus = useJewelryStore((s) => s.setStatus);
+  const status = useJewelryStore((s) => s.status);
+  const isLoading = status === "uploading" || status === "analyzing";
 
   async function handleFile(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -18,14 +19,13 @@ export default function UploadPanel() {
     }
     setError(null);
     setPreview(URL.createObjectURL(file));
-    setLoading(true);
+    setStatus("analyzing");
     try {
       const resp = await analyzeJewelry(file);
       setDesign(resp.design);
     } catch (e: unknown) {
+      setStatus("error", e instanceof Error ? e.message : "Failed to analyze image");
       setError(e instanceof Error ? e.message : "Failed to analyze image");
-    } finally {
-      setLoading(false);
     }
   }
 
