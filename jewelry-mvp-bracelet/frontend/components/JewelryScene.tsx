@@ -105,12 +105,15 @@ function StoneOverlay() {
   // The AI mesh is auto-scaled to 3.0 units. Procedural bracelet uses R=1.1,
   // ring R=0.35, pendant/earring ~0.35. Scale the StoneMesh group so gems align.
   const scaleMap: Record<string, number> = {
-    bracelet: 1.35,  // 3.0 / (1.1 * 2) ≈ 1.36
-    ring: 4.0,       // 3.0 / (0.35 * 2) ≈ 4.3
+    bracelet: 1.35,
+    ring: 4.0,
     pendant: 3.0,
     earring: 3.0,
   };
   const s = scaleMap[jtype] ?? 1.35;
+
+  // Bump stone sizes so they're clearly visible over the AI mesh surface
+  const overlayStoneSize = design.stone_size * 2.0;
 
   return (
     <group scale={[s, s, s]}>
@@ -121,7 +124,7 @@ function StoneOverlay() {
         style={style}
         bandWidth={design.band_width}
         jewelryType={jtype}
-        stoneSize={design.stone_size * 1.5}
+        stoneSize={overlayStoneSize}
       />
     </group>
   );
@@ -133,7 +136,10 @@ function AIMeshView({ designId }: { designId: string }) {
   return (
     <Suspense fallback={<ProceduralView />}>
       <GeneratedMeshViewer designId={designId} />
-      <StoneOverlay />
+      {/* Sparkle lights for gem fire on stones detected within the AI mesh */}
+      <pointLight position={[2, 2, 2]} intensity={0.6} color="#ffffff" distance={10} />
+      <pointLight position={[-2, 1, 2]} intensity={0.4} color="#e0e8ff" distance={10} />
+      <pointLight position={[0, -1, 3]} intensity={0.3} color="#fff0e0" distance={8} />
     </Suspense>
   );
 }
@@ -165,12 +171,15 @@ export default function JewelryScene({ showAIMesh = false, uploadedImageUrl }: S
 
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} intensity={1.5} castShadow />
-      <directionalLight position={[-3, -3, 3]} intensity={0.6} color="#8080ff" />
-      <pointLight position={[0, 0, 3]} intensity={1.0} color="#ffe4b5" />
-      <spotLight position={[0, 5, 0]} intensity={0.8} angle={0.5} penumbra={0.5} color="#fffaf0" />
-      <Environment preset="studio" />
+      <ambientLight intensity={0.9} />
+      <directionalLight position={[5, 5, 5]} intensity={1.8} castShadow />
+      <directionalLight position={[-3, -3, 3]} intensity={0.8} color="#8080ff" />
+      <directionalLight position={[0, -3, 5]} intensity={0.6} />
+      <pointLight position={[0, 0, 3]} intensity={1.2} color="#ffe4b5" />
+      <spotLight position={[0, 5, 0]} intensity={1.0} angle={0.5} penumbra={0.5} color="#fffaf0" />
+      {/* Key light for gem fire — slightly warm white from front-top */}
+      <spotLight position={[3, 3, 4]} intensity={1.5} angle={0.3} penumbra={0.3} color="#ffffff" />
+      <Environment preset="studio" background={false} />
 
       {view}
 

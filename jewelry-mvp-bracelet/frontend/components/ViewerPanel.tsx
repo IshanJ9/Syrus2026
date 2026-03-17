@@ -19,7 +19,7 @@ export default function ViewerPanel() {
         shadows
         gl={{ antialias: true, alpha: false }}
       >
-        <color attach="background" args={["#080810"]} />
+        <color attach="background" args={["#1a1a2e"]} />
         {design ? (
           <JewelryScene showAIMesh={showAIMesh} uploadedImageUrl={uploadedImageUrl || undefined} />
         ) : (
