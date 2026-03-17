@@ -166,13 +166,9 @@ async def _generate_trellis(image_path: str, design_id: str) -> str | None:
 
 async def generate_3d_mesh(image_path: str, design_id: str) -> str | None:
     logger.info("Starting 3D mesh generation for %s", design_id)
-    # Try TRELLIS first (single GPU call, most reliable)
-    glb = await _generate_trellis(image_path, design_id)
-    if glb:
-        return glb
-    logger.info("TRELLIS failed, trying frogleo/Hunyuan ...")
+    # Use frogleo/Image-to-3D (Hunyuan) as the primary model
     glb = await _generate_hunyuan(image_path, design_id)
     if glb:
         return glb
-    logger.warning("All 3D generation failed for %s", design_id)
+    logger.warning("3D generation failed for %s", design_id)
     return None
